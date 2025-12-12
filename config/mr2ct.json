@@ -22,10 +22,10 @@
                     "split": "train",
                     "data_len": -1,
                     "image_size": [256, 256],
-                    "mr_mean": 0.5,
-                    "mr_std": 0.5,
-                    "ct_mean": 0.5,
-                    "ct_std": 0.5
+                    "mr_mean": 0.0, // replace with MR channel mean of your dataset
+                    "mr_std": 1.0,  // replace with MR channel std of your dataset
+                    "ct_mean": 0.0, // replace with CT channel mean of your dataset
+                    "ct_std": 1.0   // replace with CT channel std of your dataset
                 } 
             },
             "dataloader":{
@@ -53,10 +53,10 @@
                     "data_root": "datasets/mr2ct",
                     "split": "test",
                     "image_size": [256, 256],
-                    "mr_mean": 0.5,
-                    "mr_std": 0.5,
-                    "ct_mean": 0.5,
-                    "ct_std": 0.5
+                    "mr_mean": 0.0, // keep in sync with train normalization
+                    "mr_std": 1.0,
+                    "ct_mean": 0.0,
+                    "ct_std": 1.0
                 }
             },
             "dataloader":{
