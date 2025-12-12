@@ -32,6 +32,9 @@ def make_dataset(dir):
 def pil_loader(path):
     return Image.open(path).convert('RGB')
 
+def pil_loader_gray(path):
+    return Image.open(path).convert('L')
+
 class InpaintDataset(data.Dataset):
     def __init__(self, data_root, mask_config={}, data_len=-1, image_size=[256, 256], loader=pil_loader):
         imgs = make_dataset(data_root)
@@ -174,3 +177,47 @@ class ColorizationDataset(data.Dataset):
         return len(self.flist)
 
 
+class MR2CTDataset(data.Dataset):
+    def __init__(self, data_root, mr_mean, mr_std, ct_mean, ct_std, split='train', data_len=-1, image_size=[256, 256], loader=pil_loader_gray):
+        mr_dir = os.path.join(data_root, 'mr', split)
+        ct_dir = os.path.join(data_root, 'ct', split)
+
+        mr_imgs = make_dataset(mr_dir)
+        ct_imgs = make_dataset(ct_dir)
+
+        mr_dict = {os.path.basename(p): p for p in mr_imgs}
+        ct_dict = {os.path.basename(p): p for p in ct_imgs}
+
+        paired_names = sorted(list(set(mr_dict.keys()) & set(ct_dict.keys())))
+        if data_len > 0:
+            paired_names = paired_names[:int(data_len)]
+        if len(paired_names) == 0:
+            raise ValueError(f'No paired MR/CT images found in {mr_dir} and {ct_dir}.')
+
+        self.mr_paths = [mr_dict[name] for name in paired_names]
+        self.ct_paths = [ct_dict[name] for name in paired_names]
+        self.paths = paired_names
+        self.loader = loader
+        self.mr_tfs = transforms.Compose([
+            transforms.Resize((image_size[0], image_size[1])),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[mr_mean], std=[mr_std])
+        ])
+        self.ct_tfs = transforms.Compose([
+            transforms.Resize((image_size[0], image_size[1])),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[ct_mean], std=[ct_std])
+        ])
+
+    def __getitem__(self, index):
+        ret = {}
+        mr_img = self.mr_tfs(self.loader(self.mr_paths[index]))
+        ct_img = self.ct_tfs(self.loader(self.ct_paths[index]))
+
+        ret['gt_image'] = ct_img
+        ret['cond_image'] = mr_img
+        ret['path'] = self.paths[index]
+        return ret
+
+    def __len__(self):
+        return len(self.paths)
